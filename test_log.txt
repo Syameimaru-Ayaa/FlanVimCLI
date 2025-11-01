@@ -1,0 +1,4 @@
+# log
+This is a test file with log mode enabled.
+Line 2
+Line 3
