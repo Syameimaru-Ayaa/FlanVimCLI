@@ -72,4 +72,8 @@ public class WorkSpace {
     public void setWorkSpacePath(String workSpacePath) {
         this.workSpacePath = workSpacePath;
     }
+
+    public Map<String, Editor> getAllEditors() {
+        return editors;
+    }
 }

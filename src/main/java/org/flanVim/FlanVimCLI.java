@@ -23,7 +23,8 @@ import java.util.List;
              FlanVimCLI.RedoCmd.class,
              FlanVimCLI.LoadCmd.class,
              FlanVimCLI.InitSpaceCmd.class,
-             FlanVimCLI.DirTreeCmd.class
+             FlanVimCLI.DirTreeCmd.class,
+             FlanVimCLI.SaveCmd.class
          })
 public class FlanVimCLI implements Runnable {
 
@@ -131,6 +132,37 @@ public class FlanVimCLI implements Runnable {
         }
     }
 
+    @Command(name = "save", description = "Save the active file")
+    static class SaveCmd implements Runnable {
+        @Option(names = {"--all", "-a"}, description = "Save all files")
+        private boolean saveAll;
+
+        @Parameters(index = "0..*", description = "File name(s)", arity = "0..*")
+        private String[] fileNames;
+
+        @Override
+        public void run() {
+            SaveCommand cmd;
+            
+            if (saveAll) {
+                // 保存所有文件
+                cmd = new SaveCommand(workSpace, true);
+            } else if (fileNames != null && fileNames.length > 0) {
+                // 保存指定的一个或多个文件
+                cmd = new SaveCommand(workSpace, Arrays.asList(fileNames));
+            } else {
+                // 保存当前活动文件
+                if (!workSpace.hasActiveEditor()) {
+                    System.out.println("Error: No active editor.");
+                    return;
+                }
+                cmd = new SaveCommand(workSpace);
+            }
+            
+            cmd.execute();
+        }
+    }
+
     @Command(name = "show", description = "Display file content")
     static class ShowCmd implements Runnable {
         @Override
@@ -152,6 +184,7 @@ public class FlanVimCLI implements Runnable {
             CommandHistory history = workSpace.getCommandHistory();
             if (history != null) {
                 history.undo();
+                System.out.println("Undo last command");
             }
         }
     }
@@ -164,6 +197,7 @@ public class FlanVimCLI implements Runnable {
             CommandHistory history = workSpace.getCommandHistory();
             if (history != null) {
                 history.redo();
+                System.out.println("Redo last command");
             }
         }
     }

@@ -20,9 +20,10 @@ public class AppendCommand implements Command, Undoable {
 
     @Override
     public boolean execute() {
-        editor.append(textToAppend);
-        appendLength = textToAppend.length();
-        System.out.println("Appended: " + textToAppend);
+        int beforeLength = editor.getContentLength();
+        editor.append(textToAppend);  // 使用 appendLine 追加一行
+        appendLength = editor.getContentLength() - beforeLength;
+        //System.out.println("Appended line: " + textToAppend);
         return true;
     }
 
@@ -35,7 +36,6 @@ public class AppendCommand implements Command, Undoable {
 
     @Override
     public void redo() {
-        editor.append(textToAppend);
-        System.out.println("Redo append");
+        execute();
     }
 }
