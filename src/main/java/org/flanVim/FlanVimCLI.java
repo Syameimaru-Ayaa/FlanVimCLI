@@ -24,18 +24,27 @@ import java.util.List;
              FlanVimCLI.LoadCmd.class,
              FlanVimCLI.InitSpaceCmd.class,
              FlanVimCLI.DirTreeCmd.class,
-             FlanVimCLI.SaveCmd.class
+             FlanVimCLI.EditorListCmd.class,
+             FlanVimCLI.SaveCmd.class,
+             FlanVimCLI.EditCmd.class,
+             FlanVimCLI.CloseCmd.class,
+             FlanVimCLI.ExitCmd.class
          })
 public class FlanVimCLI implements Runnable {
 
     // 共享的 WorkSpace
     static WorkSpace workSpace = new WorkSpace();
+    static Scanner scanner = new Scanner(System.in);  // 共享的 Scanner
 
     @Override
     public void run() {
         System.out.println("Use --help to see available commands.");
     }
 
+
+    /**
+     * 比较特殊，文档没做要求，所以也没做相关命令抽象
+     */
     @Command(name = "inispace", description = "Initialize a new workspace")
     static class InitSpaceCmd implements Runnable {
         @Parameters(index = "0", description = "Workspace path")
@@ -78,7 +87,16 @@ public class FlanVimCLI implements Runnable {
             // Implement directory tree display logic here
             System.out.println("Displaying directory tree for workspace: " + workSpace.getWorkSpacePath());
             DirTreeCommand cmd = new DirTreeCommand(directoryPath);
-            cmd.execute();
+            workSpace.executeCommand(cmd);
+        }
+    }
+
+    @Command(name = "editor-list", description = "List all open editors")
+    static class EditorListCmd implements Runnable {
+        @Override
+        public void run() {
+            EditorListCommand cmd = new EditorListCommand(workSpace);
+            workSpace.executeCommand(cmd);
         }
     }
 
@@ -97,7 +115,7 @@ public class FlanVimCLI implements Runnable {
 
             List<String> args = text != null ? Arrays.asList(text) : List.of();
             AppendCommand cmd = new AppendCommand(workSpace.getActiveEditor(), args);
-            cmd.execute();
+            workSpace.executeCommand(cmd);  // workspace自动管理历史
         }
     }
 
@@ -127,8 +145,7 @@ public class FlanVimCLI implements Runnable {
         public void run() {
             System.out.println("Loading file: " + filePath);
             LoadCommand cmd = new LoadCommand(workSpace, filePath);
-            cmd.execute();
-            workSpace.getCommandHistory().addCommand(cmd);
+            workSpace.executeCommand(cmd);  // 自动管理历史
         }
     }
 
@@ -159,7 +176,7 @@ public class FlanVimCLI implements Runnable {
                 cmd = new SaveCommand(workSpace);
             }
             
-            cmd.execute();
+            workSpace.executeCommand(cmd); 
         }
     }
 
@@ -167,12 +184,8 @@ public class FlanVimCLI implements Runnable {
     static class ShowCmd implements Runnable {
         @Override
         public void run() {
-            if (!workSpace.hasActiveEditor()) {
-                System.out.println("Error: No active editor.");
-                return;
-            }
-            System.out.println("Content of " + workSpace.getActiveFileName() + ":");
-            System.out.println(workSpace.getActiveEditor().getContent());
+            //TODO
+            
         }
     }
 
@@ -184,7 +197,6 @@ public class FlanVimCLI implements Runnable {
             CommandHistory history = workSpace.getCommandHistory();
             if (history != null) {
                 history.undo();
-                System.out.println("Undo last command");
             }
         }
     }
@@ -202,6 +214,44 @@ public class FlanVimCLI implements Runnable {
         }
     }
 
+    @Command(name = "edit", description = "Switch to another opened file")
+    static class EditCmd implements Runnable {
+        @Parameters(index = "0", description = "File name to switch to")
+        private String fileName;
+
+        @Override
+        public void run() {
+            EditCommand cmd = new EditCommand(workSpace, fileName);
+            workSpace.executeCommand(cmd);
+        }
+    }
+
+    @Command(name = "close", description = "Close the active or specified file")
+    static class CloseCmd implements Runnable {
+        @Parameters(index = "0", description = "File name to close (optional)", arity = "0..1")
+        private String fileName;
+
+        @Override
+        public void run() {
+            CloseCommand cmd;
+            if (fileName != null) {
+                cmd = new CloseCommand(workSpace, fileName, scanner);
+            } else {
+                cmd = new CloseCommand(workSpace, scanner);
+            }
+            workSpace.executeCommand(cmd);
+        }
+    }
+
+    @Command(name = "exit", description = "Exit FlanVimCLI")
+    static class ExitCmd implements Runnable {
+        @Override
+        public void run() {
+            ExitCommand cmd = new ExitCommand(workSpace, scanner);
+            workSpace.executeCommand(cmd);
+        }
+    }
+
     public static void main(String[] args) {
         CommandLine commandLine = new CommandLine(new FlanVimCLI());
         Scanner scanner = new Scanner(System.in);
@@ -210,16 +260,17 @@ public class FlanVimCLI implements Runnable {
         while (true) {
             System.out.print("> ");
             String input = scanner.nextLine().trim();
-            if ("exit".equalsIgnoreCase(input)) {
-                System.out.println("Exiting FlanVimCLI...");
-                break;
-            }
+            // if ("exit".equalsIgnoreCase(input)) {
+            //     System.out.println("Exiting FlanVimCLI...");
+            //     break;
+            // }
             try {
                 commandLine.execute(input.split("\\s+"));
             } catch (Exception e) {
                 System.out.println("Error: " + e.getMessage());
+                scanner.close();
+                break;
             }
         }
-        scanner.close();
     }
 }

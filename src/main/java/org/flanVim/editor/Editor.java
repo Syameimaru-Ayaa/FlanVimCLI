@@ -3,6 +3,7 @@ package org.flanVim.editor;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 /**
  * Editor: 一个打开的文本的包装类
@@ -12,16 +13,19 @@ public class Editor {
     private String filePath;
     private boolean modified = false;
     private boolean withLog = false;
+    private LocalDateTime lastAccessTime;  // 最后访问时间
 
     public Editor(String filePath) {
         this.filePath = filePath;
         this.content = new StringBuilder();
+        this.lastAccessTime = LocalDateTime.now();
     }
 
     public Editor(String filePath, String initialContent) {
         this.filePath = filePath;
         this.content = new StringBuilder(initialContent);
         modified = true;
+        this.lastAccessTime = LocalDateTime.now();
     }
 
     public Editor(String filePath, String initialContent, boolean withLog) {
@@ -29,6 +33,7 @@ public class Editor {
         this.content = new StringBuilder(initialContent);
         this.withLog = withLog;
         modified = true;
+        this.lastAccessTime = LocalDateTime.now();
     }
 
     /**
@@ -67,7 +72,7 @@ public class Editor {
         return content.toString();
     }
 
-    public String getfilePath() {
+    public String getFilePath() {
         return filePath;
     }
 
@@ -121,6 +126,20 @@ public class Editor {
         this.modified = false;
         
         return true;
+    }
+
+    /**
+     * 获取最后访问时间
+     */
+    public LocalDateTime getLastAccessTime() {
+        return lastAccessTime;
+    }
+
+    /**
+     * 更新最后访问时间
+     */
+    public void updateAccessTime() {
+        this.lastAccessTime = LocalDateTime.now();
     }
 
 }

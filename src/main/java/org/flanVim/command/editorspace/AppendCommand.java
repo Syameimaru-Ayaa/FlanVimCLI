@@ -20,10 +20,16 @@ public class AppendCommand implements Command, Undoable {
 
     @Override
     public boolean execute() {
-        int beforeLength = editor.getContentLength();
-        editor.append(textToAppend);  // 使用 appendLine 追加一行
-        appendLength = editor.getContentLength() - beforeLength;
-        //System.out.println("Appended line: " + textToAppend);
+        try{
+            int beforeLength = editor.getContentLength();
+            editor.append(textToAppend);  // 使用 appendLine 追加一行
+            appendLength = editor.getContentLength() - beforeLength;
+            //System.out.println("Appended line: " + textToAppend);
+        } catch (Exception e) {
+            System.out.println("Error appending text: " + e.getMessage());
+            return false;
+        }
+        
         return true;
     }
 
