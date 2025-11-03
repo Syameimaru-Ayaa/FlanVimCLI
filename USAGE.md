@@ -72,16 +72,42 @@ Start:Hello World
 
 ### undo
 撤销上一个命令
+
+**智能撤销模式** (默认):
+- 优先撤销当前编辑器的命令
+- 如果当前编辑器没有历史,则撤销 WorkSpace 层的命令
+
 ```
 > undo
-Undo append
+Undo last editor command (if any)
+```
+
+**强制 WorkSpace 模式**:
+使用 `--workspace` 或 `-w` 选项强制撤销 WorkSpace 层的命令,忽略编辑器历史
+
+```
+> undo --workspace
+Undo workspace command (load, save, edit, etc.)
 ```
 
 ### redo
 重做上一个撤销的命令
+
+**智能重做模式** (默认):
+- 优先重做当前编辑器的命令
+- 如果当前编辑器没有历史,则重做 WorkSpace 层的命令
+
 ```
 > redo
-Redo append
+Redo last undone command
+```
+
+**强制 WorkSpace 模式**:
+使用 `--workspace` 或 `-w` 选项强制重做 WorkSpace 层的命令,忽略编辑器历史
+
+```
+> redo --workspace
+Redo workspace command
 ```
 
 ### exit

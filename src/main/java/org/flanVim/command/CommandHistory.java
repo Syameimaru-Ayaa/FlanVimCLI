@@ -10,6 +10,7 @@ public class CommandHistory {
     public void addCommand(Command command) {
         undoHistory.push(command);
         
+        //清空redo栈
         redoHistory.clear();
         
         // 限制 undo 栈的大小，防止内存溢出

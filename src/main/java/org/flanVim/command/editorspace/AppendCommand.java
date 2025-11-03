@@ -1,13 +1,13 @@
 package org.flanVim.command.editorspace;
 
-import org.flanVim.command.Command;
+import org.flanVim.command.EditorCommand;
 import org.flanVim.command.Undoable;
 import org.flanVim.editor.Editor;
 
 /**
  * AppendCommand - 在文件末尾追加一行文本
  */
-public class AppendCommand implements Command, Undoable {
+public class AppendCommand implements Undoable, EditorCommand {
     private final Editor editor;
     private final String textToAppend;
     private int appendLength;  // 记录追加的字符数（用于 undo）
@@ -20,6 +20,11 @@ public class AppendCommand implements Command, Undoable {
     public AppendCommand(Editor editor, String text) {
         this.editor = editor;
         this.textToAppend = text != null ? text : "";
+    }
+    
+    @Override
+    public Editor getEditor() {
+        return editor;
     }
 
     @Override

@@ -1,6 +1,6 @@
 package org.flanVim.command.editorspace;
 
-import org.flanVim.command.Command;
+import org.flanVim.command.EditorCommand;
 import org.flanVim.command.Undoable;
 import org.flanVim.editor.Editor;
 
@@ -8,7 +8,7 @@ import org.flanVim.editor.Editor;
  * DeleteCommand - 删除指定位置的文本
  * 与 InsertCommand 互为逆操作
  */
-public class DeleteCommand implements Command, Undoable {
+public class DeleteCommand implements Undoable, EditorCommand {
     private final Editor editor;
     private final int line;
     private final int column;
@@ -20,6 +20,11 @@ public class DeleteCommand implements Command, Undoable {
         this.line = line;
         this.column = column;
         this.length = length;
+    }
+    
+    @Override
+    public Editor getEditor() {
+        return editor;
     }
 
     @Override

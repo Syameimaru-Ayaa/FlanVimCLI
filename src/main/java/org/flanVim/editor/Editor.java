@@ -11,8 +11,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.flanVim.command.Command;
+import org.flanVim.command.CommandHistory;
+
 /**
  * Editor: 一个打开的文本的包装类
+ * 
+ * 每个 Editor 维护自己的命令历史栈，实现文件级别的 undo/redo
  */
 public class Editor {
     private StringBuilder content;
@@ -20,6 +25,7 @@ public class Editor {
     private boolean modified = false;
     private boolean withLog = false;
     private LocalDateTime lastAccessTime;  // 最后访问时间
+    private CommandHistory history = new CommandHistory();  // 每个 Editor 独立的历史栈
 
     /**
      * 从文件路径创建 Editor（如果文件存在则加载内容，否则创建空 Editor）
@@ -307,6 +313,33 @@ public class Editor {
 
     public void updateAccessTime() {
         this.lastAccessTime = LocalDateTime.now();
+    }
+
+    // ==================== 历史管理方法 ====================
+    
+    public void addToHistory(Command cmd) {
+        history.addCommand(cmd);
+    }
+    
+    public void undo() {
+        history.undo();
+    }
+
+    public void redo() {
+        history.redo();
+    }
+    
+
+    public boolean hasUndo() {
+        return history.getUndoSize() > 0;
+    }
+    
+    public boolean hasRedo() {
+        return history.getRedoSize() > 0;
+    }
+    
+    public CommandHistory getHistory() {
+        return history;
     }
 
 }

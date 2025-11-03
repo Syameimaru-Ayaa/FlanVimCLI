@@ -2,7 +2,6 @@ package org.flanVim;
 
 import org.flanVim.command.editorspace.*;
 import org.flanVim.command.workspace.*;
-import org.flanVim.command.CommandHistory;
 import org.flanVim.editor.Editor;
 import org.flanVim.workspace.WorkSpace;
 import org.flanVim.util.ArgumentParser;
@@ -330,23 +329,34 @@ public class FlanVimCLI implements Runnable {
 
     @Command(name = "undo", description = "Undo the last command")
     static class UndoCmd implements Runnable {
+        @Option(names = {"--workspace", "-w"}, description = "Force undo workspace-level command instead of editor command")
+        private boolean workspace = false;
+
         @Override
         public void run() {
-            CommandHistory history = workSpace.getCommandHistory();
-            if (history != null) {
-                history.undo();
+            if (workspace) {
+                // 强制撤销 WorkSpace 层的命令
+                workSpace.undoWorkspace();
+            } else {
+                // 智能撤销: 优先当前 Editor,否则 WorkSpace
+                workSpace.undo();
             }
         }
     }
 
     @Command(name = "redo", description = "Redo the last undone command")
     static class RedoCmd implements Runnable {
+        @Option(names = {"--workspace", "-w"}, description = "Force redo workspace-level command instead of editor command")
+        private boolean workspace = false;
+
         @Override
         public void run() {
-            CommandHistory history = workSpace.getCommandHistory();
-            if (history != null) {
-                history.redo();
-                System.out.println("Redo last command");
+            if (workspace) {
+                // 强制重做 WorkSpace 层的命令
+                workSpace.redoWorkspace();
+            } else {
+                // 智能重做: 优先当前 Editor,否则 WorkSpace
+                workSpace.redo();
             }
         }
     }

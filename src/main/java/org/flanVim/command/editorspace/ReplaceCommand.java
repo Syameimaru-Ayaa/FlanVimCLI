@@ -1,6 +1,6 @@
 package org.flanVim.command.editorspace;
 
-import org.flanVim.command.Command;
+import org.flanVim.command.EditorCommand;
 import org.flanVim.command.Undoable;
 import org.flanVim.editor.Editor;
 
@@ -9,7 +9,7 @@ import org.flanVim.editor.Editor;
  * replace <line:col> <len> "text"
  * 本质上是"先删除后插入"的组合操作
  */
-public class ReplaceCommand implements Command, Undoable {
+public class ReplaceCommand implements Undoable, EditorCommand {
     private final Editor editor;
     private final int line;
     private final int column;
@@ -31,6 +31,11 @@ public class ReplaceCommand implements Command, Undoable {
         this.column = column;
         this.length = length;
         this.newText = newText != null ? newText : "";
+    }
+    
+    @Override
+    public Editor getEditor() {
+        return editor;
     }
 
     @Override
