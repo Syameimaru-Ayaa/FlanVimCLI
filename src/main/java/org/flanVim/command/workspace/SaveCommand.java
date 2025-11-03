@@ -40,7 +40,7 @@ public class SaveCommand implements Command {
 
     /**
      * 保存指定文件或所有文件
-     * @param fileName 文件名或 "all"
+     * @param fileName 文件名或 "all"，其实"all"的功能不想加了，但为了保证文档功能能实现
      */
     public SaveCommand(WorkSpace workSpace, String fileName) {
         this.workSpace = workSpace;

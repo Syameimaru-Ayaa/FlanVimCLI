@@ -5,6 +5,7 @@ import org.flanVim.command.workspace.*;
 import org.flanVim.command.CommandHistory;
 import org.flanVim.editor.Editor;
 import org.flanVim.workspace.WorkSpace;
+import org.flanVim.util.ArgumentParser;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -12,11 +13,13 @@ import picocli.CommandLine.Parameters;
 
 import java.util.Scanner;
 import java.util.Arrays;
-import java.util.List;
 
 @Command(name = "FlanVimCLI", version = "FlanVimCLI 1.0", mixinStandardHelpOptions = true,
          subcommands = {
              FlanVimCLI.AppendCmd.class,
+             FlanVimCLI.DeleteCmd.class,
+             FlanVimCLI.InsertCmd.class,
+             FlanVimCLI.ReplaceCmd.class,
              FlanVimCLI.InitCmd.class,
              FlanVimCLI.ShowCmd.class,
              FlanVimCLI.UndoCmd.class,
@@ -103,8 +106,8 @@ public class FlanVimCLI implements Runnable {
     // append "text" 命令
     @Command(name = "append", description = "Append text to the active file")
     static class AppendCmd implements Runnable {
-        @Parameters(index = "0..*", description = "Text to append")
-        private String[] text;
+        @Parameters(index = "0", description = "Text to append (use quotes for text with spaces)")
+        private String text;
 
         @Override
         public void run() {
@@ -113,9 +116,116 @@ public class FlanVimCLI implements Runnable {
                 return;
             }
 
-            List<String> args = text != null ? Arrays.asList(text) : List.of();
-            AppendCommand cmd = new AppendCommand(workSpace.getActiveEditor(), args);
+            // text 已由 ArgumentParser 正确解析（支持空格、转义等）
+            AppendCommand cmd = new AppendCommand(workSpace.getActiveEditor(), text != null ? text : "");
             workSpace.executeCommand(cmd);  // workspace自动管理历史
+        }
+    }
+
+    @Command(name = "delete", description = "Delete text in the active file")
+    static class DeleteCmd implements Runnable {
+        @Parameters(index = "0", description = "the start position <line:col> at which delete begin ", arity = "1")
+        private String position;
+
+        @Parameters(index = "1", description = "length of text to be deleted", arity = "1")
+        private int length;
+
+        @Override
+        public void run() {
+            if (!workSpace.hasActiveEditor()) {
+                System.out.println("Error: No active editor. Use 'init/load <file>' first.");
+                return;
+            }
+
+            Editor editor = workSpace.getActiveEditor();
+
+            String[] parts = position.split(":");
+            if(parts.length != 2) {
+                System.out.println("Invalid range format. Use [int:int].");
+                return;
+            }
+            try{
+                int line = Integer.parseInt(parts[0]);
+                int colume = Integer.parseInt(parts[1]);
+                DeleteCommand cmd = new DeleteCommand(editor, line, colume, length);
+                workSpace.executeCommand(cmd);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid range format. Use [int:int].");
+                return;
+            }
+        }
+    }
+
+    @Command(name = "insert", description = "Insert text into the active file")
+    static class InsertCmd implements Runnable {
+        @Parameters(index = "0", description = "the start position <line:col> at which insert begin ", arity = "1")
+        private String position;
+
+        @Parameters(index = "1", description = "Text to insert (use quotes for text with spaces)")
+        private String text;
+
+        @Override
+        public void run() {
+            if (!workSpace.hasActiveEditor()) {
+                System.out.println("Error: No active editor. Use 'init/load <file>' first.");
+                return;
+            }
+
+            Editor editor = workSpace.getActiveEditor();
+
+            String[] parts = position.split(":");
+            if(parts.length != 2) {
+                System.out.println("Invalid range format. Use [int:int].");
+                return;
+            }
+            try{
+                int line = Integer.parseInt(parts[0]);
+                int colume = Integer.parseInt(parts[1]);
+                // text 已由 ArgumentParser 正确解析（支持空格、转义等）
+                InsertCommand cmd = new InsertCommand(editor, line, colume, text != null ? text : "");
+                workSpace.executeCommand(cmd);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid range format. Use [int:int].");
+                return;
+            }
+        }
+    }
+
+    @Command(name = "replace", description = "Replace text in the active file")
+    static class ReplaceCmd implements Runnable {
+        @Parameters(index = "0", description = "the start position <line:col> at which replace begin ", arity = "1")
+        private String position;
+
+        @Parameters(index = "1", description = "length of text to be replaced", arity = "1")
+        private int length;
+
+        @Parameters(index = "2", description = "Text to replace with (use quotes for text with spaces)")
+        private String text;
+
+        @Override
+        public void run() {
+            if (!workSpace.hasActiveEditor()) {
+                System.out.println("Error: No active editor. Use 'init <file>' first.");
+                return;
+            }
+
+            Editor editor = workSpace.getActiveEditor();
+
+            String[] parts = position.split(":");
+            if(parts.length != 2) {
+                System.out.println("Invalid range format. Use [int:int].");
+                return;
+            }
+            try{
+                int line = Integer.parseInt(parts[0]);
+                int colume = Integer.parseInt(parts[1]);
+                // 使用新的构造函数，text 已由 ArgumentParser 正确解析（支持空格）
+                ReplaceCommand cmd = new ReplaceCommand(editor, line, colume, length, text != null ? text : "");
+                workSpace.executeCommand(cmd);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid range format. Use [int:int].");
+                return;
+            }
         }
     }
 
@@ -130,7 +240,10 @@ public class FlanVimCLI implements Runnable {
 
         @Override
         public void run() {
-            Editor editor = new Editor(fileName);
+            Editor editor = new Editor(fileName, true);  // 创建空 Editor
+            if (withLog) {
+                editor.setWithLog(true);
+            }
             workSpace.addEditor(fileName, editor);
             System.out.println("Created new buffer: " + fileName);
         }
@@ -182,10 +295,36 @@ public class FlanVimCLI implements Runnable {
 
     @Command(name = "show", description = "Display file content")
     static class ShowCmd implements Runnable {
+        @Parameters(index = "0", description = "[startLine:endLine]", arity = "0..1")
+        private String range;
+
         @Override
         public void run() {
-            //TODO
-            
+            if (!workSpace.hasActiveEditor()) {
+                System.out.println("Error: No active editor. Use 'init/load <file>' first.");
+                return;
+            }
+            Editor editor = workSpace.getActiveEditor();
+            ShowCommand cmd;
+            if (range == null) {
+                cmd = new ShowCommand(editor);
+            } else {
+                // 解析范围
+                String[] parts = range.split(":");
+                if(parts.length != 2) {
+                    System.out.println("Invalid range format. Use [int:int].");
+                    return;
+                }
+                try{
+                    int startLine = Integer.parseInt(parts[0]);
+                    int endLine = Integer.parseInt(parts[1]);
+                    cmd = new ShowCommand(editor, startLine, endLine);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid range format. Use [int:int].");
+                    return;
+                }
+            }
+            workSpace.executeCommand(cmd);
         }
     }
 
@@ -193,7 +332,6 @@ public class FlanVimCLI implements Runnable {
     static class UndoCmd implements Runnable {
         @Override
         public void run() {
-            WorkSpace workSpace = FlanVimCLI.workSpace;
             CommandHistory history = workSpace.getCommandHistory();
             if (history != null) {
                 history.undo();
@@ -205,7 +343,6 @@ public class FlanVimCLI implements Runnable {
     static class RedoCmd implements Runnable {
         @Override
         public void run() {
-            WorkSpace workSpace = FlanVimCLI.workSpace;
             CommandHistory history = workSpace.getCommandHistory();
             if (history != null) {
                 history.redo();
@@ -260,12 +397,14 @@ public class FlanVimCLI implements Runnable {
         while (true) {
             System.out.print("> ");
             String input = scanner.nextLine().trim();
-            // if ("exit".equalsIgnoreCase(input)) {
-            //     System.out.println("Exiting FlanVimCLI...");
-            //     break;
-            // }
+            
             try {
-                commandLine.execute(input.split("\\s+"));
+                // 使用智能参数解析器，支持引号和转义字符
+                String[] parsedArgs = ArgumentParser.parse(input);
+                commandLine.execute(parsedArgs);
+            } catch (IllegalArgumentException e) {
+                // 参数解析错误（如未闭合的引号）
+                System.out.println("Parse Error: " + e.getMessage());
             } catch (Exception e) {
                 System.out.println("Error: " + e.getMessage());
                 scanner.close();

@@ -7,10 +7,6 @@ import org.flanVim.workspace.WorkSpace;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.io.BufferedReader;
-import java.io.FileReader;
 
 public class LoadCommand implements Command, Undoable {
     private WorkSpace workSpace;
@@ -54,55 +50,32 @@ public class LoadCommand implements Command, Undoable {
             return true;
         }
         
+        // 创建 Editor（如果文件存在会自动加载内容，否则创建空 Editor）
         Editor editor;
-        boolean withLog = false;
-        
-        if (file.exists()) {
-            // 文件存在，读取内容
-            try {
-                // 先读取第一行检查是否启用日志
-                try (BufferedReader reader = new BufferedReader(new FileReader(fullPath))) {
-                    String firstLine = reader.readLine();
-                    if (firstLine != null && firstLine.equals("# log")) {
-                        withLog = true;
-                    }
-                }
-                
-                // 读取完整内容
-                String content = Files.readString(Paths.get(fullPath));
-                
-                editor = new Editor(fullPath, content, withLog);
-                editor.setModified(false); // 刚加载的文件未修改
-                
-                System.out.println("Loaded file: " + fullPath);
-                if (withLog) {
-                    System.out.println("Log mode enabled for this file.");
-                }
-            } catch (IOException e) {
-                System.out.println("Error loading file: " + e.getMessage());
-                return false;
-            }
-        } else {
-            // 文件不存在，创建新文件
-            try {
-                // 创建父目录（如果不存在）
+        try {
+            // 如果文件不存在，先创建文件
+            if (!file.exists()) {
                 File parentDir = file.getParentFile();
                 if (parentDir != null && !parentDir.exists()) {
                     parentDir.mkdirs();
                 }
-                
-                // 创建空文件
                 file.createNewFile();
-                wasNewFile = true; // 标记这是新创建的文件
-                
-                editor = new Editor(fullPath);
-                editor.setModified(true); // 新创建的文件标记为已修改
-                
+                wasNewFile = true;
                 System.out.println("File does not exist. Created new file: " + fullPath);
-            } catch (IOException e) {
-                System.out.println("Error creating file: " + e.getMessage());
-                return false;
             }
+            
+            // 创建 Editor（会自动加载文件内容）
+            editor = new Editor(fullPath);
+            
+            if (editor.isWithLog()) {
+                System.out.println("Log mode enabled for this file.");
+            }
+            if (!wasNewFile) {
+                System.out.println("Loaded file: " + fullPath);
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading file: " + e.getMessage());
+            return false;
         }
         
         // 添加到工作区并设为活动文件

@@ -9,6 +9,14 @@ import java.util.Scanner;
 
 import org.flanVim.editor.Editor;
 
+/**
+ * 好像必须要Undoable，不然回退会出错，对该文件的修改将不能回退
+ * 取舍:?要么把exit改成可回退，要么把history中国关于该文件的命令忽略
+ * 其实按照主流编辑器而言，应该是后者用的多吧，没见过编辑器能回退关闭的
+ * 这就涉及到其实一开始打算给每个Editor分配一个History的，这样exit的时候就不会有问题了
+ * workspace存放workspace的history，editor存放editor的history，是不是更好
+ * 怎么办呢怎么办呢
+ */
 public class ExitCommand implements Command {
 
     private WorkSpace workSpace;

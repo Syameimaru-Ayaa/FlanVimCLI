@@ -160,6 +160,8 @@ public class WorkSpace {
      * 只有成功执行的可撤销命令才会被添加到历史记录中
      * 这样可以避免失败的命令占用内存
      * 
+     * 而且，只用调用workSpace的executeCommand的指令才会被入历史，方便管理
+     * 
      * @param command 要执行的命令
      * @return 命令执行结果（true 表示成功，false 表示失败）
      */
